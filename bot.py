@@ -5,17 +5,11 @@ from aiogram.types import (
     Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 )
 from aiogram.filters import Command
+from config import BOT_TOKEN, CHAT_ID       
 
-# ---------- НАСТРОЙКИ ----------
-BOT_TOKEN = "8251156548:AAGmv0IZ-JdihBS9E0I0ERKsoXG-UFHY-b4"
-TARGET_CHAT_ID = 1859354654            
-                # ID человека, получающего все фото
-
-# ---------- ИНИЦИАЛИЗАЦИЯ ----------
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
-# ---------- КЛАВИАТУРА «Отправить ещё фото» ----------
 def get_another_photo_keyboard():
     button = InlineKeyboardButton(
         text="📤 Отправить ещё фото",
@@ -23,28 +17,21 @@ def get_another_photo_keyboard():
     )
     return InlineKeyboardMarkup(inline_keyboard=[[button]])
 
-# ---------- ОБРАБОТЧИК ФОТО (главное изменение здесь) ----------
 @dp.message(F.photo)
 async def handle_photo(message: Message):
-    # Берём самое большое фото (последний элемент в списке)
     photo = message.photo[-1]
 
-    # Получаем текст, который написал отправитель (может быть пустым)
     sender_caption = message.caption
 
-    # Формируем подпись для получателя
     sender_info = f"📎 От @{message.from_user.username} ({message.from_user.full_name})"
     if sender_caption:
-        # Если пользователь добавил описание – отправляем его вместе с информацией об отправителе
         final_caption = f"{sender_info}:\n{sender_caption}"
     else:
-        # Если описание не добавлено – просто стандартная подпись
         final_caption = sender_info
 
-    # Пересылаем фото получателю
     try:
         await bot.send_photo(
-            TARGET_CHAT_ID,
+            CHAT_ID,
             photo.file_id,
             caption=final_caption
         )
@@ -59,7 +46,6 @@ async def handle_photo(message: Message):
         reply_markup=get_another_photo_keyboard()
     )
 
-# ---------- НАЖАТИЕ КНОПКИ «Отправить ещё» ----------
 @dp.callback_query(F.data == "send_another")
 async def ask_for_another_photo(callback: CallbackQuery):
     await callback.message.edit_text(
@@ -69,7 +55,6 @@ async def ask_for_another_photo(callback: CallbackQuery):
     )
     await callback.answer()
 
-# ---------- КОМАНДА /start ----------
 @dp.message(Command("start"))
 async def cmd_start(message: Message):
     await message.answer(
@@ -79,7 +64,6 @@ async def cmd_start(message: Message):
         reply_markup=get_another_photo_keyboard()
     )
 
-# ---------- ЗАПУСК ----------
 async def main():
     logging.basicConfig(level=logging.INFO)
     await dp.start_polling(bot)
